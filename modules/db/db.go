@@ -32,7 +32,25 @@ func (db *db) Init() error {
 	db.cancel = cancel
 
 	uri := db.conf.Get().DbURI
-	c, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	dbOpts := options.BSONOptions{
+		UseJSONStructTags:       true,
+		ErrorOnInlineDuplicates: false,
+		IntMinSize:              false,
+		NilMapAsEmpty:           false,
+		NilSliceAsEmpty:         false,
+		NilByteSliceAsEmpty:     false,
+		OmitZeroStruct:          false,
+		StringifyMapKeysWithFmt: false,
+		AllowTruncatingDoubles:  false,
+		BinaryAsSlice:           false,
+		DefaultDocumentD:        false,
+		DefaultDocumentM:        false,
+		UseLocalTimeZone:        false,
+		ZeroMaps:                false,
+		ZeroStructs:             false,
+	}
+	dbClient := options.Client().ApplyURI(uri).SetBSONOptions(&dbOpts)
+	c, err := mongo.Connect(ctx, dbClient)
 	if err != nil {
 		return err
 	}
