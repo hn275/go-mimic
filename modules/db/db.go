@@ -2,36 +2,22 @@ package db
 
 import (
 	"context"
+	"log"
 	"log/slog"
-	"mimic/lib/utils"
-	a "mimic/modules/aggregate"
+	"time"
 
-	"github.com/chebyrash/promise"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Db interface {
-	Database(name string, opts ...*options.DatabaseOptions) *mongo.Database
-}
-type db struct {
-	conf   DbConfig
-	cancel context.CancelFunc
-	*mongo.Client
-}
+var (
+	dbClient *mongo.Client
+)
 
-var _ a.Plugin = &db{}
-var _ Db = &db{}
+func init() {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(context.Background()), time.Second*5)
+	defer cancel()
 
-func New(conf DbConfig) *db {
-	return &db{conf: conf}
-}
-
-func (db *db) Init() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	db.cancel = cancel
-
-	uri := db.conf.Get().DbURI
 	dbOpts := options.BSONOptions{
 		UseJSONStructTags:       true,
 		ErrorOnInlineDuplicates: false,
@@ -49,27 +35,23 @@ func (db *db) Init() error {
 		ZeroMaps:                false,
 		ZeroStructs:             false,
 	}
-	dbClient := options.Client().ApplyURI(uri).SetBSONOptions(&dbOpts)
-	c, err := mongo.Connect(ctx, dbClient)
-	if err != nil {
-		return err
-	}
-	err = c.Ping(ctx, nil)
-	if err != nil {
-		return err
-	}
-	db.Client = c
 
-	slog.Info("Connected to MongoDB.", "url", uri)
+	dbClientOpt := options.Client().ApplyURI(DbURI).SetBSONOptions(&dbOpts)
 
-	return nil
+	var err error
+	dbClient, err = mongo.Connect(ctx, dbClientOpt)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = dbClient.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("Connected to MongoDB.", "url", DbURI)
 }
 
-func (db *db) Start() *promise.Promise[any] {
-	return utils.PromiseResolve[any](db)
-}
-
-func (db *db) Stop() error {
-	db.cancel()
-	return nil
+func New() *mongo.Client {
+	return dbClient
 }
