@@ -2,19 +2,19 @@ package blocks
 
 import (
 	"context"
-	"mimic/modules/db"
 	"mimic/modules/db/mimic"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Blocks struct {
-	*db.Collection
+	*mongo.Collection
 }
 
 func New(d *mimic.MimicDb) Blocks {
-	return Blocks{db.NewCollection(d.DbInstance, "blocks")}
+	return Blocks{d.Collection("blocks")}
 }
 
 func (blks *Blocks) GetBlockRange(startHeight int64, endHeight int64) []HiveBlock {

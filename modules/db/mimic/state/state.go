@@ -1,16 +1,17 @@
 package state
 
 import (
-	"mimic/modules/db"
 	"mimic/modules/db/mimic"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type StateDb struct {
-	*db.Collection
+	*mongo.Collection
 }
 
 func New(d *mimic.MimicDb) StateDb {
-	return StateDb{db.NewCollection(d.DbInstance, "state")}
+	return StateDb{d.Collection("state")}
 }
 
 func (s *StateDb) GetState(key string) (string, error) {
